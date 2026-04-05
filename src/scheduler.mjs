@@ -94,8 +94,8 @@ export function schedulePmsetWake(anchor) {
 
 export function cancelPmsetSchedules() {
   try {
-    execSync('pmset -g sched', { encoding: 'utf-8' });
+    execSync('sudo pmset schedule cancelall', { stdio: 'ignore' });
   } catch {
-    // no schedules, ignore
+    // may fail if no schedules or no sudo — best effort
   }
 }
