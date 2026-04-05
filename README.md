@@ -18,7 +18,7 @@ Claude Code subscribers have a usage quota that resets every 5 hours from first 
 ## Install
 
 ```bash
-npm install -g freshquota
+npm install -g github:anniebuildz/freshquota
 ```
 
 ## Usage
