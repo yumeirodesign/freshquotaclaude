@@ -1,0 +1,16 @@
+{
+  "name": "timeslot",
+  "version": "0.1.0",
+  "description": "Optimize Claude Code 5-hour rolling window quota timing",
+  "type": "module",
+  "bin": {
+    "timeslot": "./bin/timeslot.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
