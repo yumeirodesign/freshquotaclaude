@@ -49,7 +49,6 @@ export function executeClaude() {
   return new Promise((resolve, reject) => {
     const child = spawn('claude', [
       '-p',
-      '--output-format', 'stream-json',
       '--no-session-persistence',
       '--tools', '',
       '--no-chrome',
