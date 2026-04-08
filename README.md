@@ -120,6 +120,22 @@ freshquota install
 
 作業時間帯に合わせてリセットが来るように調整できます。
 
+## Claude Code CLI の確認
+
+Claude Code CLI がインストール・認証済みかどうかは以下で確認できます。
+
+```bash
+claude --version
+```
+
+バージョンが表示されればインストール済みです。「command not found」なら未インストールです。
+
+```bash
+claude "hello"
+```
+
+短いメッセージを送って応答が返ってくれば認証も通っています。認証が切れていればエラーやログインを促すメッセージが出ます。
+
 ## Fork 元
 
 [anniebuildz/freshquota](https://github.com/anniebuildz/freshquota) を元に、複数アンカー時刻への対応を追加しています。
