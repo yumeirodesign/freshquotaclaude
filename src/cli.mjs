@@ -17,6 +17,12 @@ import { notifyTriggerResult } from './notifier.mjs';
 
 const statePath = defaultStatePath();
 
+/** anchor が配列でも文字列でも表示用に整形する */
+function formatAnchors(anchor) {
+  if (Array.isArray(anchor)) return anchor.join(', ');
+  return anchor;
+}
+
 function printUsage() {
   console.log(`Usage: freshquota <command>
 
@@ -27,7 +33,11 @@ Commands:
   status      Show current state and next trigger time
   trigger     Manually trigger now (checks window first)
   doctor      Verify scheduling chain is intact
-  run         Internal: called by launchd (not for manual use)`);
+  run         Internal: called by launchd (not for manual use)
+
+Options for analyze:
+  --anchor HH:MM            Set a single anchor time manually
+  --anchor HH:MM,HH:MM,... Set multiple anchor times (comma-separated)`);
 }
 
 function printDistribution(dist) {
@@ -128,7 +138,7 @@ async function cmdStatus() {
     return;
   }
 
-  console.log(`Anchor: ${state.anchor}`);
+  console.log(`Anchor: ${formatAnchors(state.anchor)}`);
   console.log(`Analyzed: ${state.analyzedAt || 'never'}`);
   console.log(`Last trigger: ${state.lastTrigger || 'never'}`);
   console.log(`Last result: ${state.lastResult || 'n/a'}`);
@@ -192,8 +202,13 @@ async function cmdRun() {
     process.exit(0);
   }
 
-  if (alreadyTriggeredToday(state)) {
-    process.exit(0);
+  // 複数アンカー対応: 5時間以内にトリガー済みならスキップ
+  // （元の alreadyTriggeredToday では 07:30 トリガー後に 13:00 がスキップされてしまう）
+  if (state.lastTrigger) {
+    const elapsed = Date.now() - new Date(state.lastTrigger).getTime();
+    if (elapsed < 5 * 60 * 60 * 1000) {
+      process.exit(0);
+    }
   }
 
   const historyPath = defaultHistoryPath();
@@ -233,7 +248,7 @@ async function cmdRun() {
     }
   }
 
-  // Always schedule next day's pmset wake to keep the chain alive
+  // Always schedule next pmset wake to keep the chain alive
   try {
     schedulePmsetWake(state.anchor);
   } catch {
@@ -249,7 +264,7 @@ async function cmdDoctor() {
     console.log('[FAIL] No anchor configured. Run "freshquota analyze".');
     process.exit(1);
   }
-  console.log(`[OK] Anchor: ${state.anchor}`);
+  console.log(`[OK] Anchor: ${formatAnchors(state.anchor)}`);
 
   const plist = plistPath();
   if (existsSync(plist)) {
@@ -285,16 +300,27 @@ export async function run(args) {
   // Handle --anchor flag for analyze
   if (command === 'analyze' && args.includes('--anchor')) {
     const idx = args.indexOf('--anchor');
-    const anchor = args[idx + 1];
-    if (!anchor || !/^\d{2}:\d{2}$/.test(anchor)) {
-      console.error('Invalid anchor format. Use HH:MM (e.g., 08:00)');
+    const raw = args[idx + 1];
+
+    if (!raw) {
+      console.error('Missing anchor value. Use HH:MM or HH:MM,HH:MM,...');
       process.exit(1);
     }
+
+    const anchors = raw.split(',').map(a => a.trim());
+
+    for (const a of anchors) {
+      if (!/^\d{2}:\d{2}$/.test(a)) {
+        console.error(`Invalid anchor format: "${a}". Use HH:MM (e.g., 08:00)`);
+        process.exit(1);
+      }
+    }
+
     const state = readState(statePath);
-    state.anchor = anchor;
+    state.anchor = anchors.length === 1 ? anchors[0] : anchors;
     state.analyzedAt = new Date().toISOString();
     writeState(statePath, state);
-    console.log(`Anchor set manually: ${anchor}`);
+    console.log(`Anchor(s) set: ${formatAnchors(state.anchor)}`);
     console.log('Run "freshquota install" to activate scheduling.');
     return;
   }
